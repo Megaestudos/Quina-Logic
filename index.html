@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quina — Gerador de Jogos (Filtros Racionais)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#121a2b;
+      --card2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:rgba(255,255,255,.10);
+      --accent:#60a5fa;
+      --ok:#34d399;
+      --warn:#fbbf24;
+      --bad:#f87171;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(96,165,250,.18), transparent 55%),
+                  radial-gradient(900px 600px at 90% 20%, rgba(52,211,153,.14), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+    header{display:flex;gap:12px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+    h1{margin:0;font-size:20px;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:13px;margin-top:6px;max-width:780px}
+    .grid{display:grid;grid-template-columns: 1fr 1fr;gap:14px}
+    @media (max-width: 900px){ .grid{grid-template-columns:1fr} }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.25);
+    }
+    .card h2{margin:0 0 10px 0;font-size:14px;color:var(--text);font-weight:650}
+    .row{display:grid;grid-template-columns: 1fr 1fr;gap:10px}
+    @media (max-width: 520px){ .row{grid-template-columns:1fr} }
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="number"], select, input[type="text"]{
+      width:100%; padding:10px 10px;
+      background:rgba(15,23,42,.7);
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:10px;
+      outline:none;
+    }
+    input[type="number"]:focus, select:focus, input[type="text"]:focus{border-color:rgba(96,165,250,.55)}
+    .checks{display:grid;gap:8px;margin-top:8px}
+    .check{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px; border:1px solid var(--border);
+      border-radius:12px; background:rgba(15,23,42,.45)
+    }
+    .check input{margin-top:2px}
+    .check b{font-weight:650}
+    .check span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{
+      border:1px solid var(--border);
+      background:rgba(96,165,250,.15);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:650;
+    }
+    button:hover{border-color:rgba(96,165,250,.55)}
+    button.primary{background:rgba(52,211,153,.18)}
+    button.danger{background:rgba(248,113,113,.14)}
+    .outHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .pill{
+      font-size:12px;color:var(--muted);
+      border:1px solid var(--border);
+      padding:6px 10px;border-radius:999px;
+      background:rgba(15,23,42,.55);
+    }
+    .list{display:grid;gap:10px}
+    .item{
+      border:1px solid var(--border);
+      background:rgba(15,23,42,.45);
+      border-radius:14px;
+      padding:10px;
+      display:grid;
+      gap:8px;
+    }
+    .nums{
+      display:flex; gap:8px; flex-wrap:wrap; align-items:center
+    }
+    .ball{
+      width:34px;height:34px;border-radius:999px;
+      display:flex;align-items:center;justify-content:center;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
+      font-weight:750;
+    }
+    .meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .meta .tag{
+      border:1px solid var(--border);
+      padding:4px 8px;border-radius:999px;background:rgba(11,18,32,.55)
+    }
+    .small{font-size:12px;color:var(--muted);line-height:1.35}
+    .footerNote{margin-top:12px;color:var(--muted);font-size:12px}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    .toast{margin-top:10px;color:var(--ok);font-size:12px;display:none}
+    .warn{color:var(--warn)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Quina — Gerador de Jogos (Filtros Racionais)</h1>
+        <div class="sub">
+          Este app não “prevê” sorteios. Ele apenas gera jogos com critérios de distribuição e evita padrões comuns
+          (útil para organização e para reduzir risco de dividir prêmio em caso de acerto).
+        </div>
+      </div>
+      <div class="pill mono" id="statusPill">Pronto</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Configurações do jogo</h2>
+
+        <div class="row">
+          <div>
+            <label>Quantidade de números por jogo</label>
+            <select id="qtdNums">
+              <option value="5" selected>5 (aposta simples)</option>
+              <option value="6">6 (mais combinações)</option>
+              <option value="7">7 (bem mais combinações)</option>
+            </select>
+          </div>
+          <div>
+            <label>Quantidade de jogos para gerar</label>
+            <input id="qtdJogos" type="number" min="1" max="200" value="10" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Pares desejados (deixe em branco para “automático”)</label>
+            <input id="pares" type="number" min="0" max="7" placeholder="Ex.: 2" />
+            <div class="small">Sugestão usual: 2/3 ou 3/2 (para 5 números).</div>
+          </div>
+          <div>
+            <label>Ímpares desejados (auto se pares definido)</label>
+            <input id="impares" type="number" min="0" max="7" placeholder="Ex.: 3" />
+            <div class="small">Se você preencher pares e ímpares, o app valida se soma com a quantidade escolhida.</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Soma mínima (opcional)</label>
+            <input id="somaMin" type="number" min="0" max="400" placeholder="Ex.: 120" />
+          </div>
+          <div>
+            <label>Soma máxima (opcional)</label>
+            <input id="somaMax" type="number" min="0" max="400" placeholder="Ex.: 260" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Distribuição por faixas (01–20 / 21–40 / 41–60 / 61–80)</label>
+            <select id="faixasMode">
+              <option value="auto" selected>Automática (espalhar em 3–4 faixas)</option>
+              <option value="custom">Personalizada (definir quantos por faixa)</option>
+            </select>
+          </div>
+          <div>
+            <label>Tentativas máximas por jogo (anti-loop)</label>
+            <input id="maxTries" type="number" min="50" max="100000" value="8000" />
+          </div>
+        </div>
+
+        <div id="faixasCustom" style="display:none;margin-top:10px">
+          <div class="row">
+            <div>
+              <label>Faixa 01–20</label>
+              <input id="f1" type="number" min="0" max="7" value="1" />
+            </div>
+            <div>
+              <label>Faixa 21–40</label>
+              <input id="f2" type="number" min="0" max="7" value="1" />
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Faixa 41–60</label>
+              <input id="f3" type="number" min="0" max="7" value="1" />
+            </div>
+            <div>
+              <label>Faixa 61–80</label>
+              <input id="f4" type="number" min="0" max="7" value="2" />
+            </div>
+          </div>
+          <div class="small" style="margin-top:8px">
+            A soma (f1+f2+f3+f4) deve ser igual à quantidade de números por jogo.
+          </div>
+        </div>
+
+        <div class="checks">
+          <div class="check">
+            <input id="preferAbove31" type="checkbox" checked />
+            <div>
+              <b>Preferir números acima de 31</b>
+              <span>Reduz padrão de “datas” e pode diminuir a chance de dividir prêmio (não aumenta chance de acerto).</span>
+            </div>
+          </div>
+
+          <div class="check">
+            <input id="avoidManyBelow31" type="checkbox" checked />
+            <div>
+              <b>Evitar muitos números abaixo de 31</b>
+              <span>Limita concentração em 01–31; mantém variedade no volante.</span>
+            </div>
+          </div>
+
+          <div class="check">
+            <input id="avoidSequences" type="checkbox" checked />
+            <div>
+              <b>Evitar sequências óbvias</b>
+              <span>Ex.: 10-11-12… ou 44-45… (sequências longas são raras e populares entre jogadores).</span>
+            </div>
+          </div>
+
+          <div class="check">
+            <input id="avoidSameDecade" type="checkbox" />
+            <div>
+              <b>Evitar concentração na mesma “dezena”</b>
+              <span>Ex.: muitos entre 41–49. Útil para espalhar melhor o jogo.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" id="btnGerar">Gerar jogos</button>
+          <button id="btnCopiar">Copiar lista</button>
+          <button id="btnCSV">Exportar CSV</button>
+          <button class="danger" id="btnLimpar">Limpar</button>
+        </div>
+
+        <div class="toast" id="toast">Copiado.</div>
+
+        <div class="footerNote">
+          Nota: jogar com 6 ou 7 números aumenta a chance por cobrir mais combinações; os filtros aqui são apenas “qualidade do bilhete”.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="outHead">
+          <h2>Jogos gerados</h2>
+          <div class="pill mono" id="countPill">0 jogos</div>
+        </div>
+
+        <div class="small">
+          Cada jogo mostra: soma, pares/ímpares e distribuição por faixas. Use “Copiar lista” para colar em WhatsApp/Notas/Planilha.
+        </div>
+
+        <div class="list" id="lista"></div>
+
+        <div style="margin-top:12px">
+          <label>Saída em texto (para copiar)</label>
+          <input id="saidaTexto" type="text" class="mono" readonly value="" />
+          <div class="small warn" id="warnText" style="margin-top:8px;display:none"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+
+  const statusPill = $("statusPill");
+  const countPill = $("countPill");
+  const lista = $("lista");
+  const saidaTexto = $("saidaTexto");
+  const warnText = $("warnText");
+  const toast = $("toast");
+
+  const faixasMode = $("faixasMode");
+  const faixasCustom = $("faixasCustom");
+
+  faixasMode.addEventListener("change", () => {
+    faixasCustom.style.display = faixasMode.value === "custom" ? "block" : "none";
+  });
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+
+  function isEven(n){ return n % 2 === 0; }
+
+  function faixaIndex(n){
+    if(n<=20) return 1;
+    if(n<=40) return 2;
+    if(n<=60) return 3;
+    return 4;
+  }
+
+  function countFaixas(nums){
+    const c = {1:0,2:0,3:0,4:0};
+    nums.forEach(n => c[faixaIndex(n)]++);
+    return c;
+  }
+
+  function countParity(nums){
+    let pares=0, impares=0;
+    nums.forEach(n => isEven(n) ? pares++ : impares++);
+    return {pares, impares};
+  }
+
+  function sum(nums){ return nums.reduce((a,b)=>a+b,0); }
+
+  function hasLongSequence(nums, minLen=3){
+    // Detecta sequências consecutivas (ex.: 10,11,12) de tamanho >= minLen
+    const a = [...nums].sort((x,y)=>x-y);
+    let run = 1;
+    for(let i=1;i<a.length;i++){
+      if(a[i] === a[i-1] + 1){
+        run++;
+        if(run >= minLen) return true;
+      } else {
+        run = 1;
+      }
+    }
+    return false;
+  }
+
+  function decade(n){ // 1-80 -> 0..7 (0:1-9, 1:10-19, ..., 7:70-80)
+    if(n===80) return 7;
+    return Math.floor(n/10);
+  }
+
+  function tooManySameDecade(nums, maxInSame=3){
+    const m = new Map();
+    nums.forEach(n => {
+      const d = decade(n);
+      m.set(d, (m.get(d)||0)+1);
+    });
+    for(const v of m.values()){
+      if(v > maxInSame) return true;
+    }
+    return false;
+  }
+
+  function below31Count(nums){
+    return nums.filter(n => n <= 31).length;
+  }
+
+  function uniqueRandomFromRange(min, max, count, rng=Math.random){
+    const set = new Set();
+    while(set.size < count){
+      const v = Math.floor(rng()*(max-min+1))+min;
+      set.add(v);
+    }
+    return [...set];
+  }
+
+  function shuffled(arr, rng=Math.random){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(rng()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
+  function buildTargets(qtd){
+    // Automático: espalhar por 3-4 faixas
+    // Estratégia simples:
+    // - Para 5: geralmente 1-1-1-2 (ou permuta)
+    // - Para 6: 2-1-1-2 (ou permuta) (4 faixas)
+    // - Para 7: 2-2-1-1-1 (mas só 4 faixas, então 2-2-1-2 ou 2-1-2-2)
+    if(qtd===5){
+      return shuffled([1,1,1,2]);
+    }
+    if(qtd===6){
+      return shuffled([2,1,1,2]);
+    }
+    // qtd===7
+    return shuffled([2,2,1,2]);
+  }
+
+  function validateInputs(){
+    warnText.style.display = "none";
+    warnText.textContent = "";
+
+    const qtd = Number($("qtdNums").value);
+    const qtdJogos = Number($("qtdJogos").value);
+    if(!Number.isFinite(qtdJogos) || qtdJogos < 1 || qtdJogos > 200){
+      return {ok:false, msg:"Quantidade de jogos inválida (1–200)."};
+    }
+
+    const pares = $("pares").value.trim() === "" ? null : Number($("pares").value);
+    const impares = $("impares").value.trim() === "" ? null : Number($("impares").value);
+
+    if(pares !== null && (pares < 0 || pares > qtd)) return {ok:false, msg:"Pares fora do limite."};
+    if(impares !== null && (impares < 0 || impares > qtd)) return {ok:false, msg:"Ímpares fora do limite."};
+
+    if(pares !== null && impares !== null && (pares + impares !== qtd)){
+      return {ok:false, msg:"Pares + ímpares deve ser igual à quantidade de números."};
+    }
+    if(pares !== null && impares === null) {
+      // ok
+    }
+    if(pares === null && impares !== null) {
+      // ok
+    }
+
+    const somaMin = $("somaMin").value.trim()==="" ? null : Number($("somaMin").value);
+    const somaMax = $("somaMax").value.trim()==="" ? null : Number($("somaMax").value);
+    if(somaMin !== null && somaMax !== null && somaMin > somaMax) return {ok:false, msg:"Soma mínima não pode ser maior que soma máxima."};
+
+    if(faixasMode.value === "custom"){
+      const f1 = Number($("f1").value), f2=Number($("f2").value), f3=Number($("f3").value), f4=Number($("f4").value);
+      if([f1,f2,f3,f4].some(v => !Number.isFinite(v) || v<0 || v>qtd)){
+        return {ok:false, msg:"Valores de faixa inválidos."};
+      }
+      if(f1+f2+f3+f4 !== qtd) return {ok:false, msg:"A soma das faixas deve ser igual à quantidade de números por jogo."};
+    }
+
+    const maxTries = Number($("maxTries").value);
+    if(!Number.isFinite(maxTries) || maxTries < 50) return {ok:false, msg:"Tentativas máximas muito baixa."};
+
+    return {ok:true};
+  }
+
+  function generateOne(config){
+    const {
+      qtd, targetPares, targetImpares,
+      somaMin, somaMax,
+      faixasTargets,
+      preferAbove31, avoidManyBelow31, avoidSequences, avoidSameDecade,
+      maxTries
+    } = config;
+
+    // Pool de números com preferência
+    let pool = [];
+    for(let n=1;n<=80;n++) pool.push(n);
+
+    if(preferAbove31){
+      // pondera (duplicando) números >31 no pool
+      const more = pool.filter(n => n>31);
+      pool = pool.concat(more);
+    }
+
+    // Tenta construir respeitando faixasTargets
+    for(let t=0; t<maxTries; t++){
+      let nums = [];
+
+      // Escolhe por faixas
+      for(let i=0;i<4;i++){
+        const needed = faixasTargets[i];
+        if(needed<=0) continue;
+
+        const min = i===0?1 : i===1?21 : i===2?41 : 61;
+        const max = i===0?20: i===1?40 : i===2?60 : 80;
+
+        // Filtra pool por faixa e remove já escolhidos
+        const faixaPool = pool.filter(n => n>=min && n<=max && !nums.includes(n));
+
+        // Se pool ponderada não dá variedade suficiente, cai para uniforme
+        if(new Set(faixaPool).size < needed){
+          // fallback uniforme na faixa
+          const uniform = [];
+          for(let x=min;x<=max;x++) if(!nums.includes(x)) uniform.push(x);
+          if(uniform.length < needed) { nums = null; break; }
+          nums = nums.concat(shuffled(uniform).slice(0,needed));
+        } else {
+          // amostra sem repetição real
+          const unique = [...new Set(faixaPool)];
+          nums = nums.concat(shuffled(unique).slice(0,needed));
+        }
+      }
+
+      if(!nums) continue;
+
+      // Ajuste se houver duplicidade (pode acontecer via ponderação/seleção)
+      nums = [...new Set(nums)];
+      // Completa se ficou faltando
+      while(nums.length < qtd){
+        const candidate = pool[Math.floor(Math.random()*pool.length)];
+        if(!nums.includes(candidate)) nums.push(candidate);
+      }
+
+      nums.sort((a,b)=>a-b);
+
+      // Regras de pares/ímpares
+      const par = countParity(nums);
+      const desiredPares = (targetPares !== null) ? targetPares : null;
+      const desiredImpares = (targetImpares !== null) ? targetImpares : null;
+
+      if(desiredPares !== null && par.pares !== desiredPares) continue;
+      if(desiredImpares !== null && par.impares !== desiredImpares) continue;
+
+      // Soma
+      const s = sum(nums);
+      if(somaMin !== null && s < somaMin) continue;
+      if(somaMax !== null && s > somaMax) continue;
+
+      // Evitar muitos abaixo de 31
+      if(avoidManyBelow31){
+        // limite conservador: no máximo ceil(qtd*0.6) abaixo de 31
+        const limit = Math.ceil(qtd * 0.6);
+        if(below31Count(nums) > limit) continue;
+      }
+
+      // Evitar sequências
+      if(avoidSequences){
+        if(hasLongSequence(nums, 3)) continue;
+      }
+
+      // Evitar concentração na mesma dezena
+      if(avoidSameDecade){
+        if(tooManySameDecade(nums, 3)) continue;
+      }
+
+      return nums;
+    }
+
+    return null; // falhou
+  }
+
+  function renderGames(games){
+    lista.innerHTML = "";
+    const lines = [];
+
+    games.forEach((nums, idx) => {
+      const s = sum(nums);
+      const p = countParity(nums);
+      const f = countFaixas(nums);
+
+      const div = document.createElement("div");
+      div.className = "item";
+
+      const numsDiv = document.createElement("div");
+      numsDiv.className = "nums";
+      nums.forEach(n => {
+        const b = document.createElement("div");
+        b.className = "ball mono";
+        b.textContent = pad2(n);
+        numsDiv.appendChild(b);
+      });
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = `
+        <span class="tag mono">#${String(idx+1).padStart(2,"0")}</span>
+        <span class="tag">Soma: <span class="mono">${s}</span></span>
+        <span class="tag">P/I: <span class="mono">${p.pares}/${p.impares}</span></span>
+        <span class="tag">Faixas: <span class="mono">${f[1]}-${f[2]}-${f[3]}-${f[4]}</span></span>
+      `;
+
+      div.appendChild(numsDiv);
+      div.appendChild(meta);
+      lista.appendChild(div);
+
+      lines.push(nums.map(pad2).join("-"));
+    });
+
+    const text = lines.join(" | ");
+    saidaTexto.value = text;
+    countPill.textContent = `${games.length} jogos`;
+  }
+
+  function toCSV(games){
+    // CSV simples: Jogo, N1..N7 (vazios se não usar), Soma, Pares, Impares, F1..F4
+    const maxCols = 7;
+    const header = ["Jogo"];
+    for(let i=1;i<=maxCols;i++) header.push(`N${i}`);
+    header.push("Soma","Pares","Impares","F1(01-20)","F2(21-40)","F3(41-60)","F4(61-80)");
+    const rows = [header];
+
+    games.forEach((nums, idx) => {
+      const s = sum(nums);
+      const p = countParity(nums);
+      const f = countFaixas(nums);
+      const row = [String(idx+1)];
+      for(let i=0;i<maxCols;i++){
+        row.push(nums[i] ? pad2(nums[i]) : "");
+      }
+      row.push(String(s), String(p.pares), String(p.impares), String(f[1]), String(f[2]), String(f[3]), String(f[4]));
+      rows.push(row);
+    });
+
+    // Escapar CSV
+    return rows.map(r => r.map(v => {
+      const vv = String(v ?? "");
+      return /[",\n;]/.test(vv) ? `"${vv.replaceAll('"','""')}"` : vv;
+    }).join(",")).join("\n");
+  }
+
+  function setStatus(msg, kind="ok"){
+    statusPill.textContent = msg;
+    statusPill.style.borderColor =
+      kind==="ok" ? "rgba(52,211,153,.35)" :
+      kind==="warn" ? "rgba(251,191,36,.35)" :
+      "rgba(248,113,113,.35)";
+  }
+
+  function autoParityTargets(qtd){
+    // defaults equilibrados
+    if(qtd===5) return {pares:2, impares:3};
+    if(qtd===6) return {pares:3, impares:3};
+    return {pares:3, impares:4};
+  }
+
+  function getConfig(){
+    const qtd = Number($("qtdNums").value);
+
+    // Pares/ímpares
+    const paresIn = $("pares").value.trim()==="" ? null : Number($("pares").value);
+    const imparesIn = $("impares").value.trim()==="" ? null : Number($("impares").value);
+
+    let targetPares = paresIn;
+    let targetImpares = imparesIn;
+
+    if(targetPares === null && targetImpares === null){
+      const auto = autoParityTargets(qtd);
+      targetPares = auto.pares;
+      targetImpares = auto.impares;
+    } else if(targetPares !== null && targetImpares === null){
+      targetImpares = qtd - targetPares;
+    } else if(targetPares === null && targetImpares !== null){
+      targetPares = qtd - targetImpares;
+    }
+
+    // Soma
+    const somaMin = $("somaMin").value.trim()==="" ? null : Number($("somaMin").value);
+    const somaMax = $("somaMax").value.trim()==="" ? null : Number($("somaMax").value);
+
+    // Faixas
+    let faixasTargets;
+    if(faixasMode.value === "custom"){
+      faixasTargets = [Number($("f1").value), Number($("f2").value), Number($("f3").value), Number($("f4").value)];
+    } else {
+      faixasTargets = buildTargets(qtd);
+    }
+
+    return {
+      qtd,
+      qtdJogos: Number($("qtdJogos").value),
+      targetPares,
+      targetImpares,
+      somaMin,
+      somaMax,
+      faixasTargets,
+      preferAbove31: $("preferAbove31").checked,
+      avoidManyBelow31: $("avoidManyBelow31").checked,
+      avoidSequences: $("avoidSequences").checked,
+      avoidSameDecade: $("avoidSameDecade").checked,
+      maxTries: Number($("maxTries").value)
+    };
+  }
+
+  let lastGames = [];
+
+  $("btnGerar").addEventListener("click", () => {
+    const v = validateInputs();
+    if(!v.ok){
+      warnText.style.display = "block";
+      warnText.textContent = v.msg;
+      setStatus("Ajuste as configurações", "bad");
+      return;
+    }
+
+    const cfg = getConfig();
+
+    // valida faixas custom após cfg
+    if(faixasMode.value === "custom"){
+      const sumFaixas = cfg.faixasTargets.reduce((a,b)=>a+b,0);
+      if(sumFaixas !== cfg.qtd){
+        warnText.style.display = "block";
+        warnText.textContent = "A soma das faixas deve ser igual à quantidade de números por jogo.";
+        setStatus("Configuração inválida", "bad");
+        return;
+      }
+    }
+
+    const games = [];
+    const seen = new Set();
+    let failures = 0;
+
+    for(let i=0;i<cfg.qtdJogos;i++){
+      const nums = generateOne(cfg);
+      if(!nums){
+        failures++;
+        continue;
+      }
+      const key = nums.join("-");
+      if(seen.has(key)){
+        i--; // tenta novamente para manter quantidade
+        continue;
+      }
+      seen.add(key);
+      games.push(nums);
+    }
+
+    lastGames = games;
+    renderGames(games);
+
+    if(failures > 0){
+      setStatus(`Gerado com avisos (${failures} falhas)`, "warn");
+      warnText.style.display = "block";
+      warnText.textContent = `Não foi possível gerar ${failures} jogo(s) com os filtros atuais. Se quiser 100% de preenchimento, relaxe filtros (soma/faixas/sequências).`;
+    } else {
+      setStatus("Jogos gerados", "ok");
+    }
+  });
+
+  $("btnLimpar").addEventListener("click", () => {
+    lastGames = [];
+    lista.innerHTML = "";
+    saidaTexto.value = "";
+    countPill.textContent = "0 jogos";
+    warnText.style.display = "none";
+    setStatus("Limpo", "ok");
+  });
+
+  $("btnCopiar").addEventListener("click", async () => {
+    const text = saidaTexto.value.trim();
+    if(!text){
+      setStatus("Nada para copiar", "warn");
+      return;
+    }
+    try{
+      await navigator.clipboard.writeText(text);
+      toast.style.display = "block";
+      setTimeout(()=>toast.style.display="none", 1200);
+      setStatus("Copiado", "ok");
+    }catch(e){
+      setStatus("Falha ao copiar", "warn");
+      // fallback: seleciona o input
+      saidaTexto.focus();
+      saidaTexto.select();
+    }
+  });
+
+  $("btnCSV").addEventListener("click", () => {
+    if(!lastGames.length){
+      setStatus("Nada para exportar", "warn");
+      return;
+    }
+    const csv = toCSV(lastGames);
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "quina-jogos.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setStatus("CSV exportado", "ok");
+  });
+
+  // defaults iniciais
+  setStatus("Pronto", "ok");
+})();
+</script>
+</body>
+</html>
